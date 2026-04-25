@@ -242,6 +242,102 @@ public:
         return data[(back_index == 0) ? capacity - 1 : back_index - 1];
     }
 
+    // Subscript operator
+    T& operator[](size_t n) {
+        return data[(front_index + n) % capacity];
+    }
+
+    const T& operator[](size_t n) const {
+        return data[(front_index + n) % capacity];
+    }
+
+    // At method with bounds checking
+    T& at(size_t n) {
+        if (n >= current_size) {
+            throw std::out_of_range("index out of range");
+        }
+        return data[(front_index + n) % capacity];
+    }
+
+    const T& at(size_t n) const {
+        if (n >= current_size) {
+            throw std::out_of_range("index out of range");
+        }
+        return data[(front_index + n) % capacity];
+    }
+
+    // Insert element at position
+    iterator insert(iterator pos, const T& value) {
+        size_t index = pos.index;
+        
+        if (current_size == capacity) {
+            resize();
+        }
+        
+        // Shift elements to make room
+        if (index < current_size / 2) {
+            // Shift front elements forward
+            front_index = (front_index == 0) ? capacity - 1 : front_index - 1;
+            for (size_t i = 0; i < index; ++i) {
+                data[(front_index + i) % capacity] = data[(front_index + i + 1) % capacity];
+            }
+        } else {
+            // Shift back elements backward
+            for (size_t i = current_size; i > index; --i) {
+                data[(front_index + i) % capacity] = data[(front_index + i - 1) % capacity];
+            }
+            if (back_index == 0) {
+                back_index = capacity - 1;
+            } else {
+                back_index--;
+            }
+        }
+        
+        data[(front_index + index) % capacity] = value;
+        ++current_size;
+        
+        return iterator(&data[(front_index + index) % capacity], this, index);
+    }
+
+    // Erase element at position
+    iterator erase(iterator pos) {
+        if (empty()) {
+            throw std::runtime_error("erase on empty deque");
+        }
+        
+        size_t index = pos.index;
+        T* result_ptr;
+        
+        // Shift elements to fill the gap
+        if (index < current_size / 2) {
+            // Shift front elements backward
+            for (size_t i = index; i > 0; --i) {
+                data[(front_index + i) % capacity] = data[(front_index + i - 1) % capacity];
+            }
+            result_ptr = &data[front_index];
+            if (front_index == capacity - 1) {
+                front_index = 0;
+            } else {
+                front_index++;
+            }
+        } else {
+            // Shift back elements forward
+            for (size_t i = index; i < current_size - 1; ++i) {
+                data[(front_index + i) % capacity] = data[(front_index + i + 1) % capacity];
+            }
+            result_ptr = &data[(front_index + index) % capacity];
+            if (back_index == 0) {
+                back_index = capacity - 1;
+            } else {
+                back_index--;
+            }
+        }
+        
+        --current_size;
+        
+        return iterator(result_ptr, this, index);
+    }
+
     iterator begin() {
         return iterator(&data[front_index], this, 0);
     }
