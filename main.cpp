@@ -1,12 +1,13 @@
 
 #include <iostream>
-#include <vector>
 #include <stdexcept>
 
+namespace sjtu {
+
 template<typename T>
-class Deque {
+class deque {
 private:
-    std::vector<T> data;
+    T* data;
     size_t front_index;
     size_t back_index;
     size_t capacity;
@@ -14,22 +15,157 @@ private:
 
     void resize() {
         size_t new_capacity = std::max(static_cast<size_t>(8), capacity * 2);
-        std::vector<T> new_data(new_capacity);
+        T* new_data = new T[new_capacity];
         
         // Copy elements to new array
         for (size_t i = 0; i < current_size; ++i) {
             new_data[i] = data[(front_index + i) % capacity];
         }
         
-        data = std::move(new_data);
+        delete[] data;
+        data = new_data;
         front_index = 0;
         back_index = current_size;
         capacity = new_capacity;
     }
 
 public:
-    Deque() : front_index(0), back_index(0), capacity(8), current_size(0) {
-        data.resize(capacity);
+    // Iterator class
+    class iterator {
+    private:
+        T* ptr;
+        deque* container;
+        size_t index;
+        
+    public:
+        iterator() : ptr(nullptr), container(nullptr), index(0) {}
+        iterator(T* p, deque* c, size_t i) : ptr(p), container(c), index(i) {}
+        
+        T& operator*() const {
+            return *ptr;
+        }
+        
+        iterator& operator++() {
+            if (ptr != nullptr && container != nullptr) {
+                ptr = &container->data[(index + 1) % container->capacity];
+                index++;
+            }
+            return *this;
+        }
+        
+        iterator operator++(int) {
+            iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+        
+        iterator& operator--() {
+            if (ptr != nullptr && container != nullptr) {
+                ptr = &container->data[(index == 0 ? container->capacity - 1 : index - 1) % container->capacity];
+                index--;
+            }
+            return *this;
+        }
+        
+        iterator operator--(int) {
+            iterator tmp = *this;
+            --(*this);
+            return tmp;
+        }
+        
+        bool operator==(const iterator& other) const {
+            return ptr == other.ptr;
+        }
+        
+        bool operator!=(const iterator& other) const {
+            return ptr != other.ptr;
+        }
+    };
+
+    // Const iterator class
+    class const_iterator {
+    private:
+        const T* ptr;
+        const deque* container;
+        size_t index;
+        
+    public:
+        const_iterator() : ptr(nullptr), container(nullptr), index(0) {}
+        const_iterator(const T* p, const deque* c, size_t i) : ptr(p), container(c), index(i) {}
+        
+        const T& operator*() const {
+            return *ptr;
+        }
+        
+        const_iterator& operator++() {
+            if (ptr != nullptr && container != nullptr) {
+                ptr = &container->data[(index + 1) % container->capacity];
+                index++;
+            }
+            return *this;
+        }
+        
+        const_iterator operator++(int) {
+            const_iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+        
+        const_iterator& operator--() {
+            if (ptr != nullptr && container != nullptr) {
+                ptr = &container->data[(index == 0 ? container->capacity - 1 : index - 1) % container->capacity];
+                index--;
+            }
+            return *this;
+        }
+        
+        const_iterator operator--(int) {
+            const_iterator tmp = *this;
+            --(*this);
+            return tmp;
+        }
+        
+        bool operator==(const const_iterator& other) const {
+            return ptr == other.ptr;
+        }
+        
+        bool operator!=(const const_iterator& other) const {
+            return ptr != other.ptr;
+        }
+    };
+
+    // Default constructor
+    deque() : front_index(0), back_index(0), capacity(8), current_size(0) {
+        data = new T[capacity];
+    }
+
+    // Copy constructor
+    deque(const deque& other) : front_index(0), back_index(0), capacity(other.capacity), current_size(other.current_size) {
+        data = new T[capacity];
+        for (size_t i = 0; i < current_size; ++i) {
+            data[i] = other.data[(other.front_index + i) % other.capacity];
+        }
+    }
+
+    // Assignment operator
+    deque& operator=(const deque& other) {
+        if (this != &other) {
+            delete[] data;
+            capacity = other.capacity;
+            current_size = other.current_size;
+            data = new T[capacity];
+            front_index = 0;
+            back_index = current_size;
+            for (size_t i = 0; i < current_size; ++i) {
+                data[i] = other.data[(other.front_index + i) % other.capacity];
+            }
+        }
+        return *this;
+    }
+
+    // Destructor
+    ~deque() {
+        delete[] data;
     }
 
     bool empty() const {
@@ -105,10 +241,36 @@ public:
         }
         return data[(back_index == 0) ? capacity - 1 : back_index - 1];
     }
+
+    iterator begin() {
+        return iterator(&data[front_index], this, 0);
+    }
+
+    iterator end() {
+        return iterator(&data[back_index], this, current_size);
+    }
+
+    const_iterator cbegin() const {
+        return const_iterator(&data[front_index], this, 0);
+    }
+
+    const_iterator cend() const {
+        return const_iterator(&data[back_index], this, current_size);
+    }
+
+    const_iterator begin() const {
+        return cbegin();
+    }
+
+    const_iterator end() const {
+        return cend();
+    }
 };
 
+} // namespace sjtu
+
 int main() {
-    Deque<int> dq;
+    sjtu::deque<int> dq;
     std::string command;
     
     while (std::cin >> command) {
